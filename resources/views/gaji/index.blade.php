@@ -45,6 +45,7 @@
                                     <th>Izin</th>
                                     <th>Lembur</th>
                                     <th>Gaji</th>
+                                    <th>Bulan Gaji</th> <!-- Tambahkan kolom Bulan Gaji -->
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -59,6 +60,7 @@
                                         <td>{{ $item->izin }}</td>
                                         <td>{{ $item->lembur }}</td>
                                         <td>Rp. {{ number_format($item->gaji, 2) }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($item->created_at)->locale('id')->isoFormat('MMMM') }}</td>
                                         <td>
                                             <a href="{{ route('gaji.edit', $item->id) }}" class="btn btn-warning btn-sm">
                                                 <i class="fas fa-edit"></i>

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Anggota;
 use App\Models\Profesi;
 use App\Models\Regu;
+use Carbon\Carbon;
 
 class GajiController extends Controller
 {
@@ -131,8 +132,6 @@ class GajiController extends Controller
             ->with('success', 'Slip Gaji berhasil diperbarui.');
     }
 
-
-
     /**
      * Remove the specified resource from storage.
      */
@@ -148,25 +147,30 @@ class GajiController extends Controller
     /**
      * Ambil data anggota beserta absensi untuk form create/edit.
      */
-    public function getAnggotaData($id)
+    public function getAnggotaData($id, Request $request)
     {
+        // Ambil bulan & tahun dari request, jika tidak ada gunakan bulan & tahun saat ini
+        $bulan = $request->bulan ? Carbon::createFromFormat('Y-m', $request->bulan)->month : now()->month;
+        $tahun = $request->bulan ? Carbon::createFromFormat('Y-m', $request->bulan)->year : now()->year;
+
         // Ambil data anggota beserta relasi profesi dan regu
         $anggota = Anggota::with(['profesi', 'regu'])->find($id);
 
-        // Ambil data absensi berdasarkan anggota_id
-        $absensi = Absensi::where('anggota_id', $id)->first();
-
-        // Jika data absensi ditemukan, tambahkan ke respons
-        if ($absensi) {
-            $anggota->hadir = $absensi->hadir;
-            $anggota->izin = $absensi->izin;
-            $anggota->lembur = $absensi->lembur;
-        } else {
-            // Jika tidak ada data absensi, set nilai default
-            $anggota->hadir = 0;
-            $anggota->izin = 0;
-            $anggota->lembur = 0;
+        if (!$anggota) {
+            return response()->json(['error' => 'Anggota tidak ditemukan'], 404);
         }
+
+        // Hitung total kehadiran, izin, dan lembur berdasarkan bulan yang dipilih
+        $absensi = Absensi::where('anggota_id', $id)
+            ->whereMonth('tanggal_absensi', $bulan)
+            ->whereYear('tanggal_absensi', $tahun)
+            ->selectRaw('SUM(hadir) as total_hadir, SUM(izin) as total_izin, SUM(lembur) as total_lembur')
+            ->first();
+
+        // Tambahkan hasil perhitungan ke response
+        $anggota->hadir = $absensi->total_hadir ?? 0;
+        $anggota->izin = $absensi->total_izin ?? 0;
+        $anggota->lembur = $absensi->total_lembur ?? 0;
 
         return response()->json($anggota);
     }

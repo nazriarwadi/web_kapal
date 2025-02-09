@@ -16,7 +16,7 @@
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered">
-                            <thead>
+                            <thead class="thead">
                                 <tr>
                                     <th>No</th>
                                     <th>Gambar</th>
@@ -24,6 +24,7 @@
                                     <th>Kebarangkatan</th>
                                     <th>Waktu/Jam Sampai</th>
                                     <th>Regu</th>
+                                    <th>Status</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -38,10 +39,27 @@
                                         <td>{{ $item->kebarangkatan }}</td>
                                         <td>
                                             {{ \Carbon\Carbon::parse($item->jam_sampai)
-                                                ->locale('id') // Set locale ke Indonesia
+                                                ->locale('id')
                                                 ->translatedFormat('d F Y, \j\a\m H:i') }}
                                         </td>                                       
-                                        <td>{{ $item->regu->nama_regu }}</td>
+                                        <td>
+                                            @if($item->regus) <!-- Cek apakah relasi regus tidak null -->
+                                                @foreach($item->regus as $regu)
+                                                    <span class="badge badge-primary">{{ $regu->nama_regu }}</span>
+                                                @endforeach
+                                            @else
+                                                <span class="text-muted">Tidak ada regu</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if ($item->status == 'Selesai dikerjakan')
+                                                <span class="badge badge-success">Selesai dikerjakan</span>
+                                            @elseif ($item->status == 'Sedang dikerjakan')
+                                                <span class="badge badge-warning">Sedang dikerjakan</span>
+                                            @else
+                                                <span class="badge badge-danger">Belum dikerjakan</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             <!-- Tombol Show -->
                                             <a href="{{ route('informasi.show', $item->id) }}" class="btn btn-info btn-sm">

@@ -25,7 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/anggota', [AnggotaController::class, 'store'])->name('anggota.store');
     Route::get('/anggota/{anggota}/edit', [AnggotaController::class, 'edit'])->name('anggota.edit');
     Route::put('/anggota/{anggota}', [AnggotaController::class, 'update'])->name('anggota.update');
-    Route::delete('/anggota/{anggota}', [AnggotaController::class, 'destroy'])->name('anggota.destroy');
+    Route::post('/anggota/{anggota}/ban', [AnggotaController::class, 'ban'])->name('anggota.ban');
+    Route::post('/anggota/{anggota}/unban', [AnggotaController::class, 'unban'])->name('anggota.unban');
 
     // Rute untuk Absensi
     Route::get('/absensi', [AbsensiController::class, 'index'])->name('absensi.index');

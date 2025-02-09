@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Informasi;
+use App\Models\Anggota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 
 class ApiInformasiController extends Controller
 {
-    // Get semua data informasi (hanya untuk pengguna yang login)
+    // Get semua data informasi berdasarkan regu pengguna yang login
     public function getInformasiList(Request $request)
     {
         // Periksa apakah pengguna sudah login
@@ -21,8 +22,17 @@ class ApiInformasiController extends Controller
             ], 401); // 401 Unauthorized
         }
 
-        // Ambil semua data informasi dengan relasi regu, diurutkan dari yang terbaru
-        $informasi = Informasi::with('regu')
+        // Ambil pengguna yang sedang login
+        $user = Auth::guard('sanctum')->user();
+
+        // Ambil regu_id dari pengguna yang sedang login
+        $reguId = $user->regu_id;
+
+        // Ambil semua data informasi yang memiliki regu_id yang sama dengan pengguna yang login
+        $informasi = Informasi::whereHas('regus', function ($query) use ($reguId) {
+            $query->where('regu_id', $reguId); // Filter berdasarkan regu_id
+        })
+            ->with('regus') // Eager load relasi regus
             ->orderBy('created_at', 'desc') // Urutkan dari yang terbaru
             ->get();
 
@@ -30,7 +40,7 @@ class ApiInformasiController extends Controller
         if ($informasi->isEmpty()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Tidak ada data informasi',
+                'message' => 'Tidak ada data informasi untuk regu Anda',
                 'data' => [],
             ], 200); // 200 OK
         }
@@ -40,6 +50,10 @@ class ApiInformasiController extends Controller
             return [
                 'id' => $item->id,
                 'gambar' => $item->gambar,
+                'bawaan' => $item->bawaan,
+                'kebarangkatan' => $item->kebarangkatan,
+                'status' => strip_tags($item->status_label), // Hapus tag HTML jika hanya ingin teks status
+                'regus' => $item->regus->pluck('nama_regu'), // Ambil daftar nama regu dalam bentuk array
                 'created_at' => Carbon::parse($item->created_at)
                     ->locale('id') // Set lokal ke Indonesia
                     ->translatedFormat('l, d F Y'), // Format: Hari, Tanggal Bulan Tahun
@@ -54,7 +68,7 @@ class ApiInformasiController extends Controller
         ], 200); // 200 OK
     }
 
-    // Get detail informasi berdasarkan ID (hanya untuk pengguna yang login)
+    // Get detail informasi berdasarkan ID (hanya untuk pengguna yang login dan regu sesuai)
     public function getInformasiById(Request $request, $id)
     {
         // Periksa apakah pengguna sudah login
@@ -65,14 +79,24 @@ class ApiInformasiController extends Controller
             ], 401); // 401 Unauthorized
         }
 
-        // Cari data informasi berdasarkan ID dengan relasi regu
-        $informasi = Informasi::with('regu')->find($id);
+        // Ambil pengguna yang sedang login
+        $user = Auth::guard('sanctum')->user();
+
+        // Ambil regu_id dari pengguna yang sedang login
+        $reguId = $user->regu_id;
+
+        // Cari data informasi berdasarkan ID dengan relasi regus
+        $informasi = Informasi::whereHas('regus', function ($query) use ($reguId) {
+            $query->where('regu_id', $reguId); // Filter berdasarkan regu_id
+        })
+            ->with('regus')
+            ->find($id);
 
         // Jika data informasi tidak ditemukan
         if (!$informasi) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Data informasi tidak ditemukan',
+                'message' => 'Data informasi tidak ditemukan atau tidak sesuai dengan regu Anda',
             ], 404); // 404 Not Found
         }
 
@@ -85,7 +109,8 @@ class ApiInformasiController extends Controller
             'jam_sampai' => Carbon::parse($informasi->jam_sampai)
                 ->locale('id') // Set lokal ke Indonesia
                 ->translatedFormat('d F Y, \j\a\m H:i'), // Format: 31 Januari 2025, jam 20:00
-            'regu' => $informasi->regu->nama_regu, // Langsung ambil nama regu
+            'status' => strip_tags($informasi->status_label), // Hapus tag HTML agar hanya teks yang ditampilkan
+            'regus' => $informasi->regus->pluck('nama_regu'), // Ambil daftar nama regu dalam bentuk array
             'created_at' => Carbon::parse($informasi->created_at)
                 ->locale('id') // Set lokal ke Indonesia
                 ->translatedFormat('l, d F Y'), // Format: Minggu, 26 Januari 2025

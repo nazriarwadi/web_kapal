@@ -6,104 +6,217 @@
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Daftar Absensi</h1>
-        <a href="{{ route('absensi.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Tambah Absensi
-        </a>
+        <div>
+            <a href="{{ route('absensi.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Tambah Absensi
+            </a>
+            {{-- <button class="btn btn-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </button> --}}
+        </div>
     </div>
 
-    <!-- Filter berdasarkan bulan dan tahun -->
+    <!-- Filter Section -->
     <div class="row mb-4">
+        <!-- Filter Bulan -->
         <div class="col-md-3">
             <div class="form-group">
                 <label for="bulan">Bulan</label>
-                <select class="form-control" id="bulan" name="bulan">
-                    <option value="">Pilih Bulan</option>
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}" {{ request('bulan') == $i ? 'selected' : '' }}>
-                            {{ DateTime::createFromFormat('!m', $i)->format('F') }}
+                <input type="month" class="form-control" id="bulan"
+                    value="{{ request('bulan', now()->format('Y-m')) }}">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="anggota">Nama Anggota</label>
+                <select class="form-control" id="anggota">
+                    <option value="">Semua Anggota</option>
+                    @foreach ($allAnggota as $anggota)
+                        <option value="{{ $anggota->id }}" {{ request('anggota') == $anggota->id ? 'selected' : '' }}>
+                            {{ $anggota->nama }}
                         </option>
-                    @endfor
+                    @endforeach
                 </select>
             </div>
         </div>
         <div class="col-md-3">
             <div class="form-group">
-                <label for="tahun">Tahun</label>
-                <select class="form-control" id="tahun" name="tahun">
-                    <option value="">Pilih Tahun</option>
-                    @for ($i = date('Y'); $i >= date('Y') - 5; $i--)
-                        <option value="{{ $i }}" {{ request('tahun') == $i ? 'selected' : '' }}>
-                            {{ $i }}
+                <label for="regu">Regu</label>
+                <select class="form-control" id="regu">
+                    <option value="">Semua Regu</option>
+                    @foreach ($allRegu as $regu)
+                        <option value="{{ $regu->id }}" {{ request('regu') == $regu->id ? 'selected' : '' }}>
+                            {{ $regu->nama_regu }}
                         </option>
-                    @endfor
+                    @endforeach
                 </select>
             </div>
         </div>
-        <div class="col-md-2">
-            <button type="button" id="filterButton" class="btn btn-primary mt-4">
-                <i class="fas fa-filter"></i> Filter
-            </button>
+        <div class="col-md-3 d-flex align-items-end">
+            <div class="form-group w-60">
+                <label class="d-block">&nbsp;</label>
+                <button type="button" id="filterButton" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Terapkan Filter
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Content Row -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card shadow mb-4">
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Nama Anggota</th>
-                                    <th>Profesi</th>
-                                    <th>Regu</th>
-                                    <th>Hadir</th>
-                                    <th>Izin</th>
-                                    <th>Lembur</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($absensi as $item)
-                                    <tr>
-                                        <td>{{ $loop->iteration }}</td>
-                                        <td>{{ $item->anggota->nama }}</td>
-                                        <td>{{ $item->profesi->nama_profesi }}</td>
-                                        <td>{{ $item->regu->nama_regu }}</td>
-                                        <td>{{ $item->hadir }}</td>
-                                        <td>{{ $item->izin }}</td>
-                                        <td>{{ $item->lembur }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Hadir
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalHadir }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Izin
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalIzin }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-clock fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Lembur
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalLembur }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-injured fa-2x text-info"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript untuk filter data -->
+    <!-- Data Table -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Anggota</th>
+                            <th>Profesi</th>
+                            <th>Regu</th>
+                            <th>Tanggal</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Lembur</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($absensi as $item)
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td>{{ $item->anggota->nama }}</td>
+                                <td>{{ $item->profesi->nama_profesi }}</td>
+                                <td>{{ $item->regu->nama_regu }}</td>
+                                <td>{{ $item->tanggal_absensi ? $item->tanggal_absensi->format('d M Y') : '-' }}</td>
+                                <td class="text-center">
+                                    @if ($item->hadir)
+                                        <span class="badge badge-success p-2">Hadir</span>
+                                    @elseif($item->izin)
+                                        <span class="badge badge-warning p-2">Izin</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    @if ($item->lembur)
+                                        <span class="badge badge-info p-2">{{ $item->lembur }} Hari</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between mt-4">
+                <div class="text-muted">
+                    Menampilkan {{ $absensi->firstItem() }} - {{ $absensi->lastItem() }} dari {{ $absensi->total() }}
+                    entri
+                </div>
+                {{ $absensi->links() }}
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
     <script>
-        document.getElementById('filterButton').addEventListener('click', function() {
-            const bulan = document.getElementById('bulan').value;
-            const tahun = document.getElementById('tahun').value;
+        document.addEventListener("DOMContentLoaded", function() {
+            const bulanInput = document.getElementById('bulan');
 
-            // Redirect ke halaman yang sama dengan query parameter bulan dan tahun
-            window.location.href = "{{ route('absensi.index') }}?bulan=" + bulan + "&tahun=" + tahun;
+            // Jika tidak ada parameter bulan di URL, gunakan default bulan ini
+            if (!new URLSearchParams(window.location.search).has('bulan')) {
+                const bulanSekarang = new Date().toISOString().slice(0, 7); // Format YYYY-MM
+                window.location.href = `{{ route('absensi.index') }}?bulan=${bulanSekarang}`;
+            }
         });
-    </script>
 
-    <!-- Tampilkan pesan sukses dengan Toastr -->
-    @if(session('success'))
-        <script>
+        // Filter Handling
+        document.getElementById('filterButton').addEventListener('click', function() {
+            const params = new URLSearchParams({
+                bulan: document.getElementById('bulan').value,
+                anggota: document.getElementById('anggota').value,
+                regu: document.getElementById('regu').value
+            });
+
+            window.location.href = `{{ route('absensi.index') }}?${params.toString()}`;
+        });
+
+        // Toastr Notification
+        @if (session('success'))
             toastr.success("{{ session('success') }}", "Sukses", {
                 positionClass: "toast-bottom-right",
                 timeOut: 5000,
                 closeButton: true,
                 progressBar: true,
             });
-        </script>
-    @endif
+        @endif
+    </script>
+
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fc;
+            cursor: pointer;
+        }
+
+        .badge {
+            min-width: 70px;
+        }
+    </style>
 @endsection

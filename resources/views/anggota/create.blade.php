@@ -45,13 +45,20 @@
                         </div>
                         <div class="form-group">
                             <label for="regu_id">Regu <span class="text-danger">*</span></label>
-                            <select class="form-control" id="regu_id" name="regu_id" required>
-                                <option value="" selected disabled>Pilih Regu</option> <!-- Opsi default -->
+                            <select class="form-control @error('regu_id') is-invalid @enderror" id="regu_id" name="regu_id" required>
+                                <option value="" selected disabled>Pilih Regu</option>
                                 @foreach ($regu as $item)
-                                    <option value="{{ $item->id }}">{{ $item->nama_regu }}</option>
+                                    <option value="{{ $item->id }}" data-jumlah="{{ $item->anggota_count }}">
+                                        {{ $item->nama_regu }} ({{ $item->anggota_count }}/6)
+                                    </option>
                                 @endforeach
                             </select>
-                        </div>
+                            <small id="regu_warning" class="text-danger" style="display: none;">Regu ini sudah penuh, pilih regu lain.</small>
+                        
+                            @error('regu_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>                        
                         <div class="form-group">
                             <label for="profesi_id">Profesi <span class="text-danger">*</span></label>
                             <select class="form-control" id="profesi_id" name="profesi_id" required>
@@ -70,3 +77,19 @@
         </div>
     </div>
 @endsection
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $("#regu_id").change(function() {
+            var jumlahAnggota = $("#regu_id option:selected").data("jumlah");
+
+            if (jumlahAnggota >= 6) {
+                $("#regu_warning").show();
+                $("#regu_id").val(""); // Reset pilihan regu
+            } else {
+                $("#regu_warning").hide();
+            }
+        });
+    });
+</script>

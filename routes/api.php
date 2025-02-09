@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [ApiAuthController::class, 'logout']);
 
     Route::get('/absensi', [ApiAbsensiController::class, 'getAbsensiByUser']);
+    Route::get('/absensi/check-new', [ApiAbsensiController::class, 'checkNewAbsensi']);
 
     // Endpoint untuk mendapatkan data anggota yang sedang login
     Route::get('/anggota/current', [ApiAnggotaController::class, 'getCurrentUser']);

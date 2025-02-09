@@ -25,10 +25,10 @@ class ApiAuthController extends Controller
                 'status' => 'error',
                 'message' => 'Validation error',
                 'errors' => $validator->errors(),
-            ], 422); // 422 Unprocessable Entity
+            ], 422);
         }
 
-        // Cari pengguna berdasarkan email
+        // Cari anggota berdasarkan email
         $anggota = Anggota::where('email', $request->email)->first();
 
         // Jika email tidak terdaftar
@@ -36,7 +36,18 @@ class ApiAuthController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Email tidak terdaftar',
-            ], 401); // 401 Unauthorized
+            ], 401);
+        }
+
+        // Jika anggota sedang dibanned, tidak mengubah status is_banned
+        if ($anggota->isCurrentlyBanned()) {
+            $bannedUntilFormatted = $anggota->banned_until->translatedFormat('l, d F Y') . ' pada jam ' . $anggota->banned_until->format('H:i');
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Akun kamu telah dibanned karena melakukan pelanggaran.',
+                'banned_until' => "Akun kamu akan dibuka pada {$bannedUntilFormatted}.",
+            ], 403); // 403 Forbidden
         }
 
         // Jika password salah
@@ -44,13 +55,13 @@ class ApiAuthController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Password salah',
-            ], 401); // 401 Unauthorized
+            ], 401);
         }
 
         // Hapus token yang sudah kedaluwarsa
         $anggota->tokens()->where('created_at', '<', now()->subDays(7))->delete();
 
-        // Buat token baru dengan waktu kedaluwarsa
+        // Buat token baru dengan waktu kedaluwarsa 7 hari
         $token = $anggota->createToken('auth_token', ['*'], now()->addDays(7))->plainTextToken;
 
         // Respons sukses
@@ -61,7 +72,7 @@ class ApiAuthController extends Controller
                 'token' => $token,
                 'anggota' => $anggota,
             ],
-        ], 200); // 200 OK
+        ], 200);
     }
 
     // Get Data Pengguna

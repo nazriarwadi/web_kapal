@@ -7,6 +7,7 @@ use App\Models\Absensi;
 use App\Models\Anggota;
 use App\Models\Profesi;
 use App\Models\Regu;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB; // Import facade DB dengan benar
 
 class AbsensiController extends Controller
@@ -16,21 +17,43 @@ class AbsensiController extends Controller
      */
     public function index(Request $request)
     {
-        // Ambil parameter bulan dan tahun dari request
-        $bulan = $request->query('bulan');
-        $tahun = $request->query('tahun');
+        // Atur zona waktu ke Indonesia
+        Carbon::setLocale('id');
+        date_default_timezone_set('Asia/Jakarta');
 
-        // Query data absensi
-        $absensi = Absensi::with(['anggota', 'profesi', 'regu'])
-            ->when($bulan, function ($query, $bulan) {
-                return $query->whereMonth('created_at', $bulan);
-            })
-            ->when($tahun, function ($query, $tahun) {
-                return $query->whereYear('created_at', $tahun);
-            })
-            ->get();
+        // Ambil bulan & tahun dari request, jika tidak ada gunakan bulan & tahun sekarang di Indonesia
+        $bulan = $request->bulan ? Carbon::createFromFormat('Y-m', $request->bulan)->month : now()->month;
+        $tahun = $request->bulan ? Carbon::createFromFormat('Y-m', $request->bulan)->year : now()->year;
 
-        return view('absensi.index', compact('absensi'));
+        // Query dengan filter berdasarkan bulan & tahun
+        $query = Absensi::with(['anggota', 'profesi', 'regu'])
+            ->whereMonth('tanggal_absensi', $bulan)
+            ->whereYear('tanggal_absensi', $tahun)
+            ->when($request->anggota, function ($q) use ($request) {
+                $q->where('anggota_id', $request->anggota);
+            })
+            ->when($request->regu, function ($q) use ($request) {
+                $q->whereHas('anggota', function ($q) use ($request) {
+                    $q->where('regu_id', $request->regu);
+                });
+            });
+
+        $absensi = $query->paginate(20);
+
+        // Hitung total hadir, izin, lembur berdasarkan bulan yang dipilih
+        $totalHadir = $query->clone()->where('hadir', true)->count();
+        $totalIzin = $query->clone()->where('izin', true)->count();
+        $totalLembur = $query->clone()->sum('lembur');
+
+        return view('absensi.index', [
+            'absensi' => $absensi,
+            'totalHadir' => $totalHadir,
+            'totalIzin' => $totalIzin,
+            'totalLembur' => $totalLembur,
+            'allAnggota' => Anggota::all(),
+            'allRegu' => Regu::all(),
+            'selectedBulan' => $request->bulan ?? now()->format('Y-m') // Default ke bulan saat ini di Indonesia
+        ]);
     }
 
     /**
@@ -38,11 +61,19 @@ class AbsensiController extends Controller
      */
     public function create()
     {
-        // Ambil data anggota, profesi, dan regu untuk dropdown
-        $anggota = Anggota::all();
+        // Ambil tanggal hari ini
+        $tanggalHariIni = Carbon::now('Asia/Jakarta')->toDateString();
+
+        // Ambil data anggota yang belum melakukan absensi pada hari ini
+        $anggotaBelumAbsen = Anggota::whereDoesntHave('absensi', function ($query) use ($tanggalHariIni) {
+            $query->whereDate('tanggal_absensi', $tanggalHariIni);
+        })->get();
+
+        // Ambil data profesi dan regu untuk dropdown
         $profesi = Profesi::all();
         $regu = Regu::all();
-        return view('absensi.create', compact('anggota', 'profesi', 'regu'));
+
+        return view('absensi.create', compact('anggotaBelumAbsen', 'profesi', 'regu'));
     }
 
     /**
@@ -60,52 +91,79 @@ class AbsensiController extends Controller
             'lembur.*' => 'integer|exists:anggota,id',
         ]);
 
+        // Ambil tanggal hari ini dengan zona waktu Indonesia
+        $tanggalHariIni = Carbon::now('Asia/Jakarta')->toDateString();
+
         // Simpan data absensi
         if ($request->hadir) {
             foreach ($request->hadir as $anggotaId) {
+                // Cek apakah sudah ada absensi untuk anggota ini pada tanggal yang sama
+                $existingAbsensi = Absensi::where('anggota_id', $anggotaId)
+                    ->whereDate('tanggal_absensi', $tanggalHariIni)
+                    ->first();
+
+                if ($existingAbsensi) {
+                    continue; // Lewati jika sudah ada absensi pada hari ini
+                }
+
                 $anggota = Anggota::find($anggotaId); // Ambil data anggota
-                Absensi::updateOrCreate(
-                    ['anggota_id' => $anggotaId],
-                    [
-                        'profesi_id' => $anggota->profesi_id, // Ambil profesi_id dari anggota
-                        'regu_id' => $anggota->regu_id, // Ambil regu_id dari anggota
-                        'hadir' => DB::raw('COALESCE(hadir, 0) + 1'), // Tambahkan 1 ke nilai hadir yang sudah ada
-                        'izin' => DB::raw('COALESCE(izin, 0)'), // Pertahankan nilai izin
-                        'lembur' => DB::raw('COALESCE(lembur, 0)'), // Pertahankan nilai lembur
-                    ]
-                );
+                Absensi::create([
+                    'anggota_id' => $anggotaId,
+                    'profesi_id' => $anggota->profesi_id,
+                    'regu_id' => $anggota->regu_id,
+                    'hadir' => 1,
+                    'izin' => 0,
+                    'lembur' => 0,
+                    'tanggal_absensi' => $tanggalHariIni,
+                ]);
             }
         }
 
         if ($request->izin) {
             foreach ($request->izin as $anggotaId) {
+                // Cek apakah sudah ada absensi untuk anggota ini pada tanggal yang sama
+                $existingAbsensi = Absensi::where('anggota_id', $anggotaId)
+                    ->whereDate('tanggal_absensi', $tanggalHariIni)
+                    ->first();
+
+                if ($existingAbsensi) {
+                    continue; // Lewati jika sudah ada absensi pada hari ini
+                }
+
                 $anggota = Anggota::find($anggotaId); // Ambil data anggota
-                Absensi::updateOrCreate(
-                    ['anggota_id' => $anggotaId],
-                    [
-                        'profesi_id' => $anggota->profesi_id, // Ambil profesi_id dari anggota
-                        'regu_id' => $anggota->regu_id, // Ambil regu_id dari anggota
-                        'hadir' => DB::raw('COALESCE(hadir, 0)'), // Pertahankan nilai hadir
-                        'izin' => DB::raw('COALESCE(izin, 0) + 1'), // Tambahkan 1 ke nilai izin yang sudah ada
-                        'lembur' => DB::raw('COALESCE(lembur, 0)'), // Pertahankan nilai lembur
-                    ]
-                );
+                Absensi::create([
+                    'anggota_id' => $anggotaId,
+                    'profesi_id' => $anggota->profesi_id,
+                    'regu_id' => $anggota->regu_id,
+                    'hadir' => 0,
+                    'izin' => 1,
+                    'lembur' => 0,
+                    'tanggal_absensi' => $tanggalHariIni,
+                ]);
             }
         }
 
         if ($request->lembur) {
             foreach ($request->lembur as $anggotaId) {
+                // Cek apakah sudah ada absensi untuk anggota ini pada tanggal yang sama
+                $existingAbsensi = Absensi::where('anggota_id', $anggotaId)
+                    ->whereDate('tanggal_absensi', $tanggalHariIni)
+                    ->first();
+
+                if ($existingAbsensi) {
+                    continue; // Lewati jika sudah ada absensi pada hari ini
+                }
+
                 $anggota = Anggota::find($anggotaId); // Ambil data anggota
-                Absensi::updateOrCreate(
-                    ['anggota_id' => $anggotaId],
-                    [
-                        'profesi_id' => $anggota->profesi_id, // Ambil profesi_id dari anggota
-                        'regu_id' => $anggota->regu_id, // Ambil regu_id dari anggota
-                        'hadir' => DB::raw('COALESCE(hadir, 0)'), // Pertahankan nilai hadir
-                        'izin' => DB::raw('COALESCE(izin, 0)'), // Pertahankan nilai izin
-                        'lembur' => DB::raw('COALESCE(lembur, 0) + 1'), // Tambahkan 1 ke nilai lembur yang sudah ada
-                    ]
-                );
+                Absensi::create([
+                    'anggota_id' => $anggotaId,
+                    'profesi_id' => $anggota->profesi_id,
+                    'regu_id' => $anggota->regu_id,
+                    'hadir' => 0,
+                    'izin' => 0,
+                    'lembur' => 1,
+                    'tanggal_absensi' => $tanggalHariIni,
+                ]);
             }
         }
 
@@ -120,12 +178,20 @@ class AbsensiController extends Controller
      * Get anggota by regu.
      */
     public function getAnggotaByRegu($reguId)
-{
-    if ($reguId == 'all') {
-        $anggota = Anggota::with(['profesi', 'regu'])->get();
-    } else {
-        $anggota = Anggota::with(['profesi', 'regu'])->where('regu_id', $reguId)->get();
+    {
+        // Ambil tanggal hari ini
+        $tanggalHariIni = now()->toDateString();
+
+        // Query untuk mengambil anggota berdasarkan regu dan belum absen hari ini
+        $anggota = Anggota::whereDoesntHave('absensi', function ($query) use ($tanggalHariIni) {
+            $query->whereDate('tanggal_absensi', $tanggalHariIni);
+        })
+            ->when($reguId !== 'all', function ($query) use ($reguId) {
+                return $query->where('regu_id', $reguId);
+            })
+            ->with(['profesi', 'regu'])
+            ->get();
+
+        return response()->json($anggota);
     }
-    return response()->json($anggota);
-}
 }

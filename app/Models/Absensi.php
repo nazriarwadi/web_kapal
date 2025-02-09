@@ -12,8 +12,12 @@ class Absensi extends Model
     // Tentukan nama tabel secara manual
     protected $table = 'absensi';
 
+    protected $casts = [
+        'tanggal_absensi' => 'date',
+    ];
+
     // Kolom yang bisa diisi secara massal
-    protected $fillable = ['anggota_id', 'profesi_id', 'regu_id', 'hadir', 'izin', 'lembur'];
+    protected $fillable = ['anggota_id', 'profesi_id', 'regu_id', 'hadir', 'izin', 'lembur', 'tanggal_absensi'];
 
     // Relasi ke model Anggota
     public function anggota()

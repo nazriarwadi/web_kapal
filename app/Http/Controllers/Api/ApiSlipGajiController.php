@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SlipGaji;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon; // Import Carbon untuk manipulasi tanggal
 
 class ApiSlipGajiController extends Controller
 {
@@ -39,6 +40,9 @@ class ApiSlipGajiController extends Controller
 
         // Format respons agar hanya menampilkan nama dan data yang diperlukan
         $formattedData = $slipGaji->map(function ($item) {
+            // Ubah format created_at ke nama bulan dalam bahasa Indonesia
+            $bulan = Carbon::parse($item->created_at)->locale('id')->isoFormat('MMMM YYYY'); // Contoh: "Januari", "Februari", dll.
+
             return [
                 'nama_anggota' => $item->anggota->nama ?? 'Tidak Diketahui',
                 'nama_profesi' => $item->profesi->nama_profesi ?? 'Tidak Diketahui',
@@ -47,6 +51,7 @@ class ApiSlipGajiController extends Controller
                 'izin'         => $item->izin,
                 'lembur'       => $item->lembur,
                 'gaji'         => $item->gaji,
+                'bulan'        => $bulan, // Tambahkan teks "Gaji untuk bulan [nama bulan]"
             ];
         });
 

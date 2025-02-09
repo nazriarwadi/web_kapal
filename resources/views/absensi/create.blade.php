@@ -33,6 +33,7 @@
                 <div class="card-body">
                     <form action="{{ route('absensi.store') }}" method="POST" id="absensiForm">
                         @csrf
+                        <!-- Dalam file blade template create -->
                         <table class="table table-bordered" id="anggotaTable">
                             <thead>
                                 <tr>
@@ -46,7 +47,20 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Data akan diisi melalui JavaScript -->
+                                @foreach ($anggotaBelumAbsen as $index => $anggota)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ $anggota->nama }}</td>
+                                        <td>{{ $anggota->profesi->nama_profesi }}</td>
+                                        <td>{{ $anggota->regu->nama_regu }}</td>
+                                        <td><input type="checkbox" name="hadir[]" value="{{ $anggota->id }}"
+                                                onclick="handleCheckbox(this, 'hadir')"></td>
+                                        <td><input type="checkbox" name="izin[]" value="{{ $anggota->id }}"
+                                                onclick="handleCheckbox(this, 'izin')"></td>
+                                        <td><input type="checkbox" name="lembur[]" value="{{ $anggota->id }}"
+                                                onclick="handleCheckbox(this, 'lembur')"></td>
+                                    </tr>
+                                @endforeach
                             </tbody>
                         </table>
                         <button type="submit" class="btn btn-primary mt-3">

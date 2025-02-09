@@ -19,6 +19,20 @@
                     <form action="{{ route('gaji.store') }}" method="POST">
                         @csrf
                         <div class="form-group">
+                            <label for="bulan">Pilih Bulan</label>
+                            <select class="form-control" id="bulan" name="bulan">
+                                @for ($i = 0; $i < 12; $i++)
+                                    @php
+                                        $date = now()->subMonths($i);
+                                    @endphp
+                                    <option value="{{ $date->format('Y-m') }}" {{ $i == 0 ? 'selected' : '' }}>
+                                        {{ $date->translatedFormat('F Y') }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="anggota_id">Nama Anggota <span class="text-danger">*</span></label>
                             <select class="form-control" id="anggota_id" name="anggota_id" required>
                                 <option value="" selected disabled>Pilih Anggota</option>
@@ -27,37 +41,44 @@
                                 @endforeach
                             </select>
                         </div>
+
                         <div class="form-group">
-                            <label for="profesi_id">Profesi <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="profesi_name" value="" readonly>
-                            <input type="hidden" id="profesi_id" name="profesi_id" value="">
+                            <label for="profesi_id">Profesi</label>
+                            <input type="text" class="form-control" id="profesi_name" readonly>
+                            <input type="hidden" id="profesi_id" name="profesi_id">
                         </div>
+
                         <div class="form-group">
-                            <label for="regu_id">Regu <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="regu_name" value="" readonly>
-                            <input type="hidden" id="regu_id" name="regu_id" value="">
-                        </div>                        
+                            <label for="regu_id">Regu</label>
+                            <input type="text" class="form-control" id="regu_name" readonly>
+                            <input type="hidden" id="regu_id" name="regu_id">
+                        </div>
+
                         <div class="form-group">
-                            <label for="hadir">Hadir <span class="text-danger">*</span></label>
+                            <label for="hadir">Hadir</label>
                             <input type="number" class="form-control" id="hadir" name="hadir" value="0" readonly>
                         </div>
+
                         <div class="form-group">
-                            <label for="izin">Izin <span class="text-danger">*</span></label>
+                            <label for="izin">Izin</label>
                             <input type="number" class="form-control" id="izin" name="izin" value="0" readonly>
                         </div>
+
                         <div class="form-group">
-                            <label for="lembur">Lembur <span class="text-danger">*</span></label>
+                            <label for="lembur">Lembur</label>
                             <input type="number" class="form-control" id="lembur" name="lembur" value="0" readonly>
                         </div>
+
                         <div class="form-group">
-                            <label for="gaji">Gaji <span class="text-danger">*</span></label>
+                            <label for="gaji">Total Gaji</label>
                             <div style="position: relative;">
-                                <input type="text" class="form-control" id="gaji" name="gaji" required
+                                <input type="text" class="form-control" id="gaji" name="gaji" readonly
                                     style="padding-left: 30px;">
                                 <span
                                     style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%);">Rp.</span>
                             </div>
                         </div>
+
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Simpan
                         </button>
@@ -70,35 +91,43 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-            function getAnggotaData(anggotaId) {
+            function getAnggotaData() {
+                var anggotaId = $('#anggota_id').val();
+                var bulan = $('#bulan').val();
+
                 if (anggotaId) {
                     $.ajax({
                         url: '/get-anggota-data/' + anggotaId,
                         type: 'GET',
+                        data: { bulan: bulan },
                         dataType: 'json',
                         success: function(data) {
                             $('#profesi_name').val(data.profesi.nama_profesi);
                             $('#regu_name').val(data.regu.nama_regu);
-                            $('#hadir').val(data.hadir || 0); // Default ke 0 jika kosong
+                            $('#hadir').val(data.hadir || 0);
                             $('#izin').val(data.izin || 0);
                             $('#lembur').val(data.lembur || 0);
 
-                            // Update hidden inputs
                             $('#profesi_id').val(data.profesi.id);
                             $('#regu_id').val(data.regu.id);
+
+                            updateGaji();
                         }
                     });
                 }
             }
 
-            $('#anggota_id').change(function() {
-                var anggotaId = $(this).val();
-                getAnggotaData(anggotaId);
-            });
+            function updateGaji() {
+                var hadir = parseInt($('#hadir').val()) || 0;
+                var lembur = parseInt($('#lembur').val()) || 0;
 
-            // Ambil data anggota saat halaman pertama kali dimuat
-            var initialAnggotaId = $('#anggota_id').val();
-            getAnggotaData(initialAnggotaId);
+                var totalGaji = (hadir * 300000) + (lembur * 400000);
+                $('#gaji').val(totalGaji.toLocaleString('id-ID'));
+            }
+
+            $('#anggota_id, #bulan').change(getAnggotaData);
+
+            getAnggotaData();
         });
     </script>
 @endsection

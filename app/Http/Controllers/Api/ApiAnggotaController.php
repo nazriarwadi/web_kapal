@@ -36,11 +36,27 @@ class ApiAnggotaController extends Controller
         ], 200); // 200 OK
     }
 
-    // Get data semua anggota
+    // Get data semua anggota yang memiliki regu_id yang sama dengan anggota yang sedang login
     public function getAllAnggota(Request $request)
     {
-        // Ambil semua data anggota dengan relasi 'regu' dan 'profesi'
-        $anggota = Anggota::with(['regu', 'profesi'])->get();
+        // Ambil pengguna yang sedang login
+        $user = Auth::user();
+
+        // Jika pengguna tidak ditemukan (tidak login)
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized',
+            ], 401); // 401 Unauthorized
+        }
+
+        // Ambil regu_id dari pengguna yang sedang login
+        $reguId = $user->regu_id;
+
+        // Ambil semua data anggota dengan relasi 'regu' dan 'profesi' yang memiliki regu_id yang sama
+        $anggota = Anggota::with(['regu', 'profesi'])
+            ->where('regu_id', $reguId)
+            ->get();
 
         // Jika tidak ada data anggota
         if ($anggota->isEmpty()) {
