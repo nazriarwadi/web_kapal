@@ -15,11 +15,11 @@ class ReguSeeder extends Seeder
     {
         // Data yang akan diisi ke tabel regu
         $regu = [
-            ['nama_regu' => 'Regu 1'],
-            ['nama_regu' => 'Regu 2'],
-            ['nama_regu' => 'Regu 3'],
-            ['nama_regu' => 'Regu 4'],
-            ['nama_regu' => 'Regu 5'],
+            ['nama_regu' => 'Regu 6'],
+            ['nama_regu' => 'Regu 7'],
+            ['nama_regu' => 'Regu 8'],
+            ['nama_regu' => 'Regu 9'],
+            ['nama_regu' => 'Regu 10'],
         ];
 
         // Insert data ke tabel regu
