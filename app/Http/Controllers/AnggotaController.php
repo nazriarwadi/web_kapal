@@ -135,18 +135,20 @@ class AnggotaController extends Controller
      */
     public function ban(Request $request, Anggota $anggota)
     {
+        Log::info('Request received:', $request->all());
+        Log::info('Anggota ID:', ['id' => $anggota->id]);
+
         $request->validate([
             'ban_duration' => 'required|integer|in:1,3,7,30',
         ]);
 
         try {
             DB::beginTransaction();
-
-            $banDuration = (int) $request->ban_duration; // Pastikan nilai menjadi integer
+            $banDuration = (int) $request->ban_duration;
 
             $anggota->update([
                 'is_banned' => true,
-                'banned_until' => Carbon::now()->addDays($banDuration)
+                'banned_until' => Carbon::now()->addDays($banDuration),
             ]);
 
             DB::commit();
@@ -155,7 +157,9 @@ class AnggotaController extends Controller
                 ->with('success', 'Anggota berhasil dibanned selama ' . $banDuration . ' hari.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Gagal membanned anggota: ' . $e->getMessage());
+            Log::error('Gagal membanned anggota: ' . $e->getMessage(), [
+                'anggota_id' => $anggota->id,
+            ]);
             return redirect()->back()->with('error', 'Terjadi kesalahan saat membanned anggota.');
         }
     }
