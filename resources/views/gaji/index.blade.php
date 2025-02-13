@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'Daftar Slip Gaji')
-
 @section('content')
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -11,7 +9,7 @@
         </a>
     </div>
 
-    <!-- Filter berdasarkan regu -->
+    <!-- Filter berdasarkan regu dan bulan -->
     <div class="row mb-2">
         <div class="col-md-2">
             <div class="form-group">
@@ -24,6 +22,43 @@
                         </option>
                     @endforeach
                 </select>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label for="bulan_filter">Pilih Bulan</label>
+                <select class="form-control" id="bulan_filter" name="bulan_filter">
+                    <option value="">Semua Bulan</option>
+                    @php
+                        $months = [
+                            '01' => 'Januari',
+                            '02' => 'Februari',
+                            '03' => 'Maret',
+                            '04' => 'April',
+                            '05' => 'Mei',
+                            '06' => 'Juni',
+                            '07' => 'Juli',
+                            '08' => 'Agustus',
+                            '09' => 'September',
+                            '10' => 'Oktober',
+                            '11' => 'November',
+                            '12' => 'Desember',
+                        ];
+                    @endphp
+                    @foreach ($months as $key => $month)
+                        <option value="{{ $key }}" {{ request('bulan') == $key ? 'selected' : '' }}>
+                            {{ $month }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div class="col-md-auto ml-auto">
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-success form-control" onclick="printData()">
+                    <i class="fas fa-print"></i> Print Data
+                </button>
             </div>
         </div>
     </div>
@@ -45,8 +80,7 @@
                                     <th>Izin</th>
                                     <th>Lembur</th>
                                     <th>Gaji</th>
-                                    <th>Bulan Gaji</th> <!-- Tambahkan kolom Bulan Gaji -->
-                                    <th>Aksi</th>
+                                    <th>Bulan Gaji</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -61,20 +95,6 @@
                                         <td>{{ $item->lembur }}</td>
                                         <td>Rp. {{ number_format($item->gaji, 2) }}</td>
                                         <td>{{ \Carbon\Carbon::parse($item->created_at)->locale('id')->isoFormat('MMMM') }}</td>
-                                        <td>
-                                            <a href="{{ route('gaji.edit', $item->id) }}" class="btn btn-warning btn-sm">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <form action="{{ route('gaji.destroy', $item->id) }}" method="POST"
-                                                class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Apakah Anda yakin ingin menghapus?')">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -89,34 +109,23 @@
     <script>
         document.getElementById('regu_filter').addEventListener('change', function() {
             const reguId = this.value;
-
-            // Redirect ke halaman yang sama dengan query parameter regu_id
-            window.location.href = "{{ route('gaji.index') }}?regu_id=" + reguId;
+            const bulan = document.getElementById('bulan_filter').value;
+            // Redirect ke halaman yang sama dengan query parameter regu_id dan bulan
+            window.location.href = "{{ route('gaji.index') }}?regu_id=" + reguId + "&bulan=" + bulan;
         });
-    </script>
 
-    <!-- Toastr Notification -->
-    <script>
-        $(document).ready(function() {
-            // Tampilkan toastr success jika ada session success
-            @if (session('success'))
-                toastr.success("{{ session('success') }}", "Sukses", {
-                    closeButton: true,
-                    progressBar: true,
-                    positionClass: "toast-bottom-right",
-                    timeOut: 3000, // Muncul selama 3 detik
-                });
-            @endif
-
-            // Tampilkan toastr error jika ada session error
-            @if (session('error'))
-                toastr.error("{{ session('error') }}", "Error", {
-                    closeButton: true,
-                    progressBar: true,
-                    positionClass: "toast-bottom-right",
-                    timeOut: 3000, // Muncul selama 3 detik
-                });
-            @endif
+        document.getElementById('bulan_filter').addEventListener('change', function() {
+            const bulan = this.value;
+            const reguId = document.getElementById('regu_filter').value;
+            // Redirect ke halaman yang sama dengan query parameter regu_id dan bulan
+            window.location.href = "{{ route('gaji.index') }}?regu_id=" + reguId + "&bulan=" + bulan;
         });
+
+        function printData() {
+            const reguId = document.getElementById('regu_filter').value;
+            const bulan = document.getElementById('bulan_filter').value;
+            // Redirect ke route print dengan query parameter regu_id dan bulan
+            window.location.href = "{{ route('gaji.print') }}?regu_id=" + reguId + "&bulan=" + bulan;
+        }
     </script>
 @endsection

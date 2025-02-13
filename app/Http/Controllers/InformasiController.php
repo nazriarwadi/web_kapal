@@ -15,7 +15,11 @@ class InformasiController extends Controller
      */
     public function index()
     {
-        $informasi = Informasi::with('regus')->get(); // Pastikan relasi 'regus' dimuat
+        // Ambil semua data informasi beserta relasi 'regus', dan urutkan secara descending
+        $informasi = Informasi::with('regus')
+            ->orderBy('created_at', 'desc') // Urutkan berdasarkan created_at secara descending
+            ->get();
+
         return view('informasi.index', compact('informasi'));
     }
 

@@ -25,8 +25,10 @@ class AnggotaController extends Controller
                 'banned_until' => null
             ]);
 
-        // Ambil semua data anggota beserta relasi regu dan profesi
-        $anggota = Anggota::with(['regu', 'profesi'])->get();
+        // Ambil semua data anggota beserta relasi regu dan profesi, urutkan secara descending
+        $anggota = Anggota::with(['regu', 'profesi'])
+            ->orderBy('created_at', 'desc') // Urutkan berdasarkan created_at secara descending
+            ->get();
 
         return view('anggota.index', compact('anggota'));
     }

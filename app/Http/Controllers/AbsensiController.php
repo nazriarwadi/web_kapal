@@ -36,8 +36,10 @@ class AbsensiController extends Controller
                 $q->whereHas('anggota', function ($q) use ($request) {
                     $q->where('regu_id', $request->regu);
                 });
-            });
+            })
+            ->orderBy('tanggal_absensi', 'desc'); // Urutkan berdasarkan tanggal_absensi secara descending
 
+        // Paginate hasil query
         $absensi = $query->paginate(20);
 
         // Hitung total hadir, izin, lembur berdasarkan bulan yang dipilih

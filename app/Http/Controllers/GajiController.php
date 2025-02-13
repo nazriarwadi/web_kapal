@@ -6,6 +6,7 @@ use App\Models\Absensi;
 use Illuminate\Http\Request;
 use App\Models\SlipGaji;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Anggota;
 use App\Models\Profesi;
 use App\Models\Regu;
@@ -20,18 +21,50 @@ class GajiController extends Controller
     {
         // Ambil parameter regu_id dari request
         $reguId = $request->query('regu_id');
+        $bulan = $request->query('bulan'); // Ambil parameter bulan
 
         // Query data slip gaji
         $slipGaji = SlipGaji::with(['anggota', 'profesi', 'regu'])
             ->when($reguId, function ($query, $reguId) {
                 return $query->where('regu_id', $reguId);
             })
+            ->when($bulan, function ($query, $bulan) {
+                return $query->whereMonth('created_at', $bulan); // Filter berdasarkan bulan
+            })
+            ->orderBy('created_at', 'desc') // Default pengurutan descending
             ->get();
 
         // Ambil data regu untuk dropdown
         $regu = Regu::all();
 
         return view('gaji.index', compact('slipGaji', 'regu'));
+    }
+
+    public function print(Request $request)
+    {
+        // Ambil parameter regu_id dan bulan dari request
+        $reguId = $request->query('regu_id');
+        $bulan = $request->query('bulan');
+
+        // Query data slip gaji
+        $slipGaji = SlipGaji::with(['anggota', 'profesi', 'regu'])
+            ->when($reguId, function ($query, $reguId) {
+                return $query->where('regu_id', $reguId);
+            })
+            ->when($bulan, function ($query, $bulan) {
+                return $query->whereMonth('created_at', $bulan);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Generate PDF
+        $pdf = Pdf::loadView('gaji.print', compact('slipGaji'));
+
+        // Buat nama file unik berdasarkan timestamp
+        $fileName = 'slip-gaji-' . now()->format('YmdHis') . '.pdf';
+
+        // Download PDF dengan nama file unik
+        return $pdf->download($fileName);
     }
 
     /**

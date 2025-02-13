@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
 
     // Route untuk menampilkan daftar slip gaji
     Route::get('/gaji', [GajiController::class, 'index'])->name('gaji.index');
+    Route::get('/gaji/print', [GajiController::class, 'print'])->name('gaji.print');
 
     // Route untuk menampilkan form create slip gaji
     Route::get('/gaji/create', [GajiController::class, 'create'])->name('gaji.create');
