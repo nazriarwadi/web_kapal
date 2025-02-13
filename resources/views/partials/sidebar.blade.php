@@ -44,7 +44,7 @@
     </li>
 
     <!-- Nav Item - Slip Gaji -->
-    <li class="nav-item {{ request()->routeIs('slip-gaji.*') ? 'active' : '' }}">
+    <li class="nav-item {{ request()->routeIs('gaji.*') ? 'active' : '' }}">
         <a class="nav-link" href="{{ route('gaji.index') }}">
             <i class="fas fa-fw fa-file-invoice-dollar"></i>
             <span>Slip Gaji</span>
