@@ -41,9 +41,15 @@
                                     <th>Nama</th>
                                     <th>Profesi</th>
                                     <th>Regu</th>
-                                    <th>Hadir</th>
-                                    <th>Izin</th>
-                                    <th>Lembur</th>
+                                    <th>
+                                        <input type="checkbox" id="checkAllHadir"> Hadir
+                                    </th>
+                                    <th>
+                                        <input type="checkbox" id="checkAllIzin"> Izin
+                                    </th>
+                                    <th>
+                                        <input type="checkbox" id="checkAllLembur"> Lembur
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -74,9 +80,10 @@
 
     <!-- JavaScript untuk mengambil dan menampilkan data anggota berdasarkan regu -->
     <script>
+        // Fungsi untuk memuat data anggota berdasarkan regu
         function loadAnggota(reguId) {
             const tableBody = document.querySelector('#anggotaTable tbody');
-            tableBody.innerHTML = '';
+            tableBody.innerHTML = ''; // Bersihkan isi tabel sebelum memuat data baru
 
             fetch(`/get-anggota-by-regu/${reguId}`)
                 .then(response => response.json())
@@ -84,22 +91,26 @@
                     data.forEach((anggota, index) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>${anggota.nama}</td>
-                            <td>${anggota.profesi.nama_profesi}</td>
-                            <td>${anggota.regu.nama_regu}</td>
-                            <td><input type="checkbox" name="hadir[]" value="${anggota.id}" onclick="handleCheckbox(this, 'hadir')"></td>
-                            <td><input type="checkbox" name="izin[]" value="${anggota.id}" onclick="handleCheckbox(this, 'izin')"></td>
-                            <td><input type="checkbox" name="lembur[]" value="${anggota.id}" onclick="handleCheckbox(this, 'lembur')"></td>
-                        `;
+                    <td>${index + 1}</td>
+                    <td>${anggota.nama}</td>
+                    <td>${anggota.profesi.nama_profesi}</td>
+                    <td>${anggota.regu.nama_regu}</td>
+                    <td><input type="checkbox" name="hadir[]" value="${anggota.id}" onclick="handleCheckbox(this, 'hadir')"></td>
+                    <td><input type="checkbox" name="izin[]" value="${anggota.id}" onclick="handleCheckbox(this, 'izin')"></td>
+                    <td><input type="checkbox" name="lembur[]" value="${anggota.id}" onclick="handleCheckbox(this, 'lembur')"></td>
+                `;
                         tableBody.appendChild(row);
                     });
+
+                    // Re-bind event listeners untuk "Check All" setelah data dimuat
+                    bindCheckAllListeners();
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
         }
 
+        // Event listener untuk dropdown regu
         document.getElementById('regu_filter').addEventListener('change', function() {
             const reguId = this.value;
             loadAnggota(reguId);
@@ -114,7 +125,6 @@
         function handleCheckbox(checkbox, type) {
             const row = checkbox.closest('tr');
             const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-
             checkboxes.forEach(cb => {
                 if (cb !== checkbox) {
                     cb.checked = false;
@@ -122,11 +132,37 @@
             });
         }
 
+        // Fungsi untuk mengikat event listener "Check All"
+        function bindCheckAllListeners() {
+            // Check All untuk Hadir
+            document.getElementById('checkAllHadir').addEventListener('change', function() {
+                const isChecked = this.checked;
+                document.querySelectorAll('input[name="hadir[]"]').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+            });
+
+            // Check All untuk Izin
+            document.getElementById('checkAllIzin').addEventListener('change', function() {
+                const isChecked = this.checked;
+                document.querySelectorAll('input[name="izin[]"]').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+            });
+
+            // Check All untuk Lembur
+            document.getElementById('checkAllLembur').addEventListener('change', function() {
+                const isChecked = this.checked;
+                document.querySelectorAll('input[name="lembur[]"]').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+            });
+        }
+
         // Fungsi untuk mengirim data ke server
         document.getElementById('absensiForm').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const formData = new FormData(this);
             const data = {
                 hadir: [],
                 izin: [],
@@ -137,11 +173,9 @@
             document.querySelectorAll('input[name="hadir[]"]:checked').forEach(checkbox => {
                 data.hadir.push(checkbox.value);
             });
-
             document.querySelectorAll('input[name="izin[]"]:checked').forEach(checkbox => {
                 data.izin.push(checkbox.value);
             });
-
             document.querySelectorAll('input[name="lembur[]"]:checked').forEach(checkbox => {
                 data.lembur.push(checkbox.value);
             });
